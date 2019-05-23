@@ -73,33 +73,29 @@ int main(void)
 		volatile unsigned long long st = 0, en = 0;
 
 		rdtscll(st);
+		//fork parallel
 		#pragma omp parallel
 		{
-			//printf("(a, %u:%u, %d)\n", sched_getcpu(), GETTID(), omp_get_thread_num());
 			#pragma omp single
 			{
-				//printf("(b, %u:%u, %d)\n", sched_getcpu(), GETTID(), omp_get_thread_num());
 				#pragma omp task
 				{
-					//printf("(c, %u:%u, %d)\n", sched_getcpu(), GETTID(), omp_get_thread_num());
 					#pragma omp task
 					{
-						__spin_fn();
-						//printf("(d, %u:%u, %d)\n", sched_getcpu(), GETTID(), omp_get_thread_num());
+						__spin_fn(); //do work, 1ms
 					}
 					#pragma omp taskwait
 				}
 
 				#pragma omp task
 				{
-					__spin_fn();
-					//printf("(e, %u:%u, %d)\n", sched_getcpu(), GETTID(), omp_get_thread_num());
+					__spin_fn(); //do work, 1ms
 				}
-				__spin_fn();
+				__spin_fn(); //do work, 1ms
 				#pragma omp taskwait
 			}
-			//printf("(f, %u:%u, %d)\n", sched_getcpu(), GETTID(), omp_get_thread_num());
 		}
+		//join parallel
 		rdtscll(en);
 		long diff = en - st;
 		if (diff > 0) {
@@ -109,7 +105,6 @@ int main(void)
 	}
 
 	printf("Max: %llu\n", max / CYC_US);
-//	printf("Time: %llu, %llu\n", en - st, (en -st) / CYC_US);
 
 	return 0;
 }
