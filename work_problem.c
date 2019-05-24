@@ -9,7 +9,7 @@
 
 #define rdtscll(val) __asm__ __volatile__("rdtsc" : "=A" (val))
 
-#define ITERS 10
+#define ITERS 1000
 
 /*
  * From Chaos tests!
@@ -17,7 +17,7 @@
  *       (validated with fiasco so far, it is 10us)
  */
 #define ITERS_10US 5850
-#define MULTIPLE 100
+#define MULTIPLE 10000
 
 #define SPIN_ITERS (ITERS_10US*MULTIPLE)
 
@@ -60,14 +60,14 @@ __spin_fn(void)
 
 int main(void)
 {
-	unsigned long long max = 0;
+	unsigned long long max = 0, total = 0;
 	int i;
 	unsigned long long x, y;
 
 	rdtscll(x);
 	__spin_fn();
 	rdtscll(y);
-	printf("%llu\n", (y - x)/CYC_US);
+	printf("%llu\n\n\n", (y - x)/CYC_US);
 
 	for (i = 0; i < ITERS; i++) {
 		volatile unsigned long long st = 0, en = 0;
@@ -97,14 +97,16 @@ int main(void)
 		}
 		//join parallel
 		rdtscll(en);
-		long diff = en - st;
-		if (diff > 0) {
-		       if (max < diff) max = diff;
-			printf("%llu\n", (en - st) / CYC_US);
-		}
+		long long diff = en - st;
+		
+		assert(en > st);
+		total += diff;
+		if (diff > max) max = diff;
+		printf("%lld, %lld\n", diff, diff/CYC_US);
 	}
 
-	printf("Max: %llu\n", max / CYC_US);
+	printf("(cycs) Avg:%llu, Max: %llu\n\n\n", (total / ITERS), max);
+	printf("(us) Avg:%llu, Max: %llu\n\n\n", (total / ITERS) / CYC_US, max / CYC_US);
 
 	return 0;
 }
